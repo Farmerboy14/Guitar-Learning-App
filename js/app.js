@@ -368,9 +368,10 @@
   /* ------------------------------------------------------------- start */
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); HG.installPrompt = e; if (parseHash().name === 'tonight') route(); });
   window.addEventListener('hashchange', route);
-  document.addEventListener('DOMContentLoaded', () => {
+  function init() {
     HG.Audio.setVolume(HG.Store.settings().volume);
     if (!location.hash) location.hash = '#/tonight';
     route();
-  });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
