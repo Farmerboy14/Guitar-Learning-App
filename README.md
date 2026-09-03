@@ -18,9 +18,10 @@ It runs entirely in your browser: no account, no install, no build step.
 
 **Easiest:** open `index.html` in Chrome, Edge, Firefox or Safari. Everything is plain HTML/CSS/JS.
 
-**On your phone or tablet:** publish the repository with GitHub Pages
-(*Settings → Pages → Source: "Deploy from a branch" → pick the branch that holds the app (`main` once you merge, or this branch as it is), folder `/ (root)`*). Your app will be at
-`https://<your-user>.github.io/Guitar-Learning-App/`. Add it to your home screen and it opens like an app.
+**On your phone or tablet (installable app):** the workflow in `.github/workflows/deploy.yml` publishes the site to the `gh-pages` branch on every push, and GitHub Pages serves it at
+`https://farmerboy14.github.io/Guitar-Learning-App/`. If the page does not appear after the first run, open *Settings → Pages* once and choose *Deploy from a branch → gh-pages → / (root)*.
+
+Open that address on your phone and add it to the home screen (Safari: Share → Add to Home Screen; Chrome: menu → Install app). It opens full screen and keeps working offline thanks to the service worker in `sw.js`; your progress stays on the device.
 
 **Locally with a server** (only needed if your browser blocks the microphone on `file://`):
 

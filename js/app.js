@@ -95,6 +95,17 @@
     if (allDone) view.appendChild(h('div.card.accent', h('h2', '🌙 Well done. Good night.'), h('p', 'Your streak is safe. Tomorrow evening the plan will move you one step further.')));
     else view.appendChild(h('p.muted.small', 'Tip: play for ten quiet minutes rather than skipping. Small, daily, and relaxed is how hands learn.'));
 
+    // install on the home screen
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (!standalone && /^https?:/.test(location.protocol)) {
+      const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const card = h('div.card', h('h3', '📱 Put it on your home screen'));
+      if (HG.installPrompt) card.appendChild(h('div.btn-row', h('button.btn.primary', { onClick: async () => { HG.installPrompt.prompt(); await HG.installPrompt.userChoice; HG.installPrompt = null; route(); } }, 'Install app'), h('span.small.muted', 'Opens full screen, works offline.')));
+      else if (ios) card.appendChild(h('p.small', 'In Safari tap the Share button, then “Add to Home Screen”. It opens full screen and works offline.'));
+      else card.appendChild(h('p.small', 'In your browser menu choose “Install app” or “Add to Home screen”. It opens full screen and works offline.'));
+      view.appendChild(card);
+    }
+
     // hymn progress
     const prog = h('div.card', h('h2', 'Your hymns'));
     const list = h('div.grid');
@@ -355,6 +366,7 @@
   }
 
   /* ------------------------------------------------------------- start */
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); HG.installPrompt = e; if (parseHash().name === 'tonight') route(); });
   window.addEventListener('hashchange', route);
   document.addEventListener('DOMContentLoaded', () => {
     HG.Audio.setVolume(HG.Store.settings().volume);
