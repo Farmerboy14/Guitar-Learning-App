@@ -19,7 +19,7 @@ It runs entirely in your browser: no account, no install, no build step.
 **Easiest:** open `index.html` in Chrome, Edge, Firefox or Safari. Everything is plain HTML/CSS/JS.
 
 **On your phone or tablet:** publish the repository with GitHub Pages
-(*Settings → Pages → Source: "Deploy from a branch" → branch `main`, folder `/ (root)`*). Your app will be at
+(*Settings → Pages → Source: "Deploy from a branch" → pick the branch that holds the app (`main` once you merge, or this branch as it is), folder `/ (root)`*). Your app will be at
 `https://<your-user>.github.io/Guitar-Learning-App/`. Add it to your home screen and it opens like an app.
 
 **Locally with a server** (only needed if your browser blocks the microphone on `file://`):
