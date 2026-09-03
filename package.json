@@ -1,0 +1,15 @@
+{
+  "name": "evening-hymns",
+  "version": "1.0.0",
+  "description": "Learn fingerpicking hymns on guitar: lessons, auto-arranged tabs, ear training, and a capo/instrument helper. No build step: open index.html.",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/unit.test.js",
+    "smoke": "node tests/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "license": "MIT"
+}
