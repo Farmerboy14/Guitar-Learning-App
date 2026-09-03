@@ -126,7 +126,7 @@
     vol.addEventListener('input', () => { set.volume = vol.value / 100; HG.Audio.setVolume(set.volume); S.save(); });
     view.appendChild(h('div.card', h('h2', 'Settings'), h('div.btn-row', h('label', 'Volume '), vol),
       h('div.btn-row', h('label.toggle', h('input', { type: 'checkbox', checked: set.showLyrics, onChange: e => { set.showLyrics = e.target.checked; S.save(); } }), ' Show lyrics under the tab'), h('label.toggle', h('input', { type: 'checkbox', checked: set.showFingers, onChange: e => { set.showFingers = e.target.checked; S.save(); } }), ' Show finger letters (p i m a)'), h('label.toggle', h('input', { type: 'checkbox', checked: set.showBeats, onChange: e => { set.showBeats = e.target.checked; S.save(); } }), ' Show beat numbers')),
-      h('div.btn-row', h('button.btn.small', { onClick: () => { if (confirm('Reset all progress and streaks?')) { S.reset(); route(); } } }, 'Reset progress'))));
+      h('div.btn-row', h('button.btn.small', { onClick: e => { const b = e.currentTarget; if (b.dataset.armed) { S.reset(); route(); } else { b.dataset.armed = '1'; b.textContent = 'Tap again to erase all progress'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset progress'; }, 4000); } } }, 'Reset progress'))));
   };
 
   /* --------------------------------------------------------------- HYMNS */
