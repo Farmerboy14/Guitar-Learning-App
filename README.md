@@ -16,10 +16,12 @@ It runs entirely in your browser: no account, no install, no build step.
 
 ## Run it
 
-**Easiest:** open `index.html` in Chrome, Edge, Firefox or Safari. Everything is plain HTML/CSS/JS.
+**Hosted copy (sign in to claude.ai on the device):** https://claude.ai/code/artifact/5d0e7e34-b066-4a74-8218-5a73780d6545 — open it on your phone and use *Add to Home Screen*. It is a snapshot of this branch; the GitHub Pages address below updates itself on every push.
+
+**Easiest locally:** open `index.html` in Chrome, Edge, Firefox or Safari. Everything is plain HTML/CSS/JS.
 
 **On your phone or tablet (installable app):** the workflow in `.github/workflows/deploy.yml` publishes the site to the `gh-pages` branch on every push, and GitHub Pages serves it at
-`https://farmerboy14.github.io/Guitar-Learning-App/`. If the page does not appear after the first run, open *Settings → Pages* once and choose *Deploy from a branch → gh-pages → / (root)*.
+`https://farmerboy14.github.io/Guitar-Learning-App/`. GitHub Pages only serves **public** repositories on the free plan, so first make the repository public (*Settings → General → Danger Zone → Change visibility*), then open *Settings → Pages* once and choose *Deploy from a branch → gh-pages → / (root)*.
 
 Open that address on your phone and add it to the home screen (Safari: Share → Add to Home Screen; Chrome: menu → Install app). It opens full screen and keeps working offline thanks to the service worker in `sw.js`; your progress stays on the device.
 
