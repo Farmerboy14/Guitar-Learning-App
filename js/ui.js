@@ -64,6 +64,13 @@
    * opts: { tempo, minTempo, maxTempo, onTempo, showLoop, onLoopToggle, arr, showRoles }
    * returns { el, setTempo, setPlaying, refresh }
    */
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { /* battery saver etc. */ }
+  }
+  function releaseWakeLock() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.HG.Player && window.HG.Player.playing) acquireWakeLock(); });
+
   function transport(opts) {
     const P = window.HG.Player, A = window.HG.Audio, S = window.HG.Store.settings();
     const o = Object.assign({ minTempo: 30, maxTempo: 180, tempo: 72, showRoles: false }, opts || {});
@@ -85,14 +92,20 @@
     metro.querySelector('input').addEventListener('change', e => { P.setMetronome(e.target.checked); S.metronome = e.target.checked; window.HG.Store.save(); });
     countIn.querySelector('input').addEventListener('change', e => { P.setCountIn(e.target.checked); S.countIn = e.target.checked; window.HG.Store.save(); });
     loopBtn.addEventListener('click', () => { looping = !looping; loopBtn.classList.toggle('active', looping); P.setLoopAll(looping); if (o.onLoopToggle) o.onLoopToggle(looping); });
-    const setPlaying = on => { playBtn.textContent = on ? '⏸ Pause' : '▶ Play'; playBtn.classList.toggle('playing', on); };
+    const beatDot = h('span.beat-dot', { 'aria-hidden': 'true' });
+    let beatTimer = 0;
+    P.onBeat = (tick, accent) => {
+      beatDot.classList.add('on'); beatDot.classList.toggle('accent', !!accent);
+      clearTimeout(beatTimer); beatTimer = setTimeout(() => beatDot.classList.remove('on', 'accent'), 100);
+    };
+    const setPlaying = on => { playBtn.textContent = on ? '⏸ Pause' : '▶ Play'; playBtn.classList.toggle('playing', on); if (on) acquireWakeLock(); else releaseWakeLock(); };
     playBtn.addEventListener('click', () => {
       A.ensure();
       if (P.playing) { P.pause(); setPlaying(false); }
       else { P.setTempo(tempo); P.setMetronome(metro.querySelector('input').checked); P.setCountIn(countIn.querySelector('input').checked); P.play(); setPlaying(true); }
     });
     stopBtn.addEventListener('click', () => { P.stop(); setPlaying(false); if (o.onStop) o.onStop(); });
-    const el = h('div.transport', h('div.transport-row', playBtn, stopBtn, loopBtn, h('div.tempo-box', minus, slider, plus, tempoVal)), h('div.transport-row.small-row', metro, countIn));
+    const el = h('div.transport', h('div.transport-row', playBtn, stopBtn, loopBtn, h('div.tempo-box', minus, slider, plus, tempoVal), beatDot), h('div.transport-row.small-row', metro, countIn));
     if (o.showRoles) {
       const roles = h('div.roles', h('span.muted', 'App plays: '));
       for (const [role, label] of [['melody', 'melody'], ['bass', 'bass'], ['fill', 'fills']]) {
@@ -103,7 +116,7 @@
       el.appendChild(roles);
     }
     P.onEnd = () => setPlaying(false);
-    requestAnimationFrame(() => { const hd = document.querySelector('.app-header'); if (hd && window.innerWidth > 640) el.style.top = hd.offsetHeight + 'px'; });
+    requestAnimationFrame(() => { const hd = document.querySelector('.app-header'); if (hd) el.style.top = hd.offsetHeight + 'px'; });
     return { el, setTempo, setPlaying, get tempo() { return tempo; }, playBtn };
   }
 
@@ -180,11 +193,13 @@
         active = true; startBtn.textContent = '⏹ Stop listening'; showTarget();
       } catch (e) { status.textContent = 'Microphone not available: ' + e.message + '. You can still press Space to step through the notes.'; }
     });
+    const manualBtn = h('button.btn.good', '✓ I played it');
+    manualBtn.addEventListener('click', () => { if (i >= targets.length) return; hits++; if (opts.highlight) opts.highlight(targets[i].idx, 'tab-good'); i++; showTarget(); });
     skipBtn.addEventListener('click', () => { if (i < targets.length) { i++; showTarget(); } });
     resetBtn.addEventListener('click', () => { i = 0; hits = 0; misses = 0; showTarget(); });
     const keyHandler = e => { if (e.code === 'Space' && opts.keyStep) { e.preventDefault(); if (i < targets.length) { hits++; if (opts.highlight) opts.highlight(targets[i].idx, 'tab-good'); i++; showTarget(); } } };
     document.addEventListener('keydown', keyHandler);
-    const el = h('div.listen', h('div.listen-row', startBtn, skipBtn, resetBtn), status, hint, score);
+    const el = h('div.listen', h('div.listen-row', startBtn, manualBtn, skipBtn, resetBtn), status, hint, score);
     return { el, stop() { active = false; Pitch.stop(); document.removeEventListener('keydown', keyHandler); }, setTargets(t) { targets = t; i = 0; hits = 0; misses = 0; if (active) showTarget(); }, showTarget };
   }
 

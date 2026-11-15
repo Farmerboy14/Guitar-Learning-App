@@ -116,7 +116,7 @@
       for (const n of e.notes) {
         if (state.mutedRoles.has(n.role)) continue;
         const vol = (state.volumeByRole[n.role] || 1) * (n.velocity || 1);
-        A().pluck(n.midi, t, { velocity: vol, tone: n.role === 'bass' ? 'warm' : 'warm' });
+        A().pluck(n.midi, t, { velocity: vol, tone: 'warm', pan: (3.5 - n.string) * 0.09 });
       }
       if (state.onEvent) { const idx = state.nextIdx; setTimeout(() => { if (state.playing) state.onEvent(idx, e); }, Math.max(0, (t - now) * 1000)); }
       state.nextIdx++;

@@ -14,6 +14,16 @@
     const m = /^#\/([a-z-]+)(?:\/(.+))?/.exec(location.hash || '');
     return m ? { name: m[1], param: m[2] ? decodeURIComponent(m[2]) : null } : { name: 'tonight', param: null };
   }
+  function rememberVisit(name, param) {
+    if (!param || (name !== 'hymns' && name !== 'lessons' && name !== 'theory')) return;
+    let title = null;
+    if (name === 'hymns') { const hy = HG.Hymns.byId(param); title = hy && hy.title; }
+    else if (name === 'lessons') { const l = HG.Lessons.byId(param); title = l && ('Lesson: ' + l.title); }
+    else return; // theory topics change daily via the plan; not worth resuming
+    if (!title) return;
+    const d = HG.Store.load(); d.lastOpen = { name, param, title, ts: Date.now() }; HG.Store.save();
+  }
+
   function route() {
     const { name, param } = parseHash();
     if (teardown) { try { teardown(); } catch (e) { /* ignore */ } teardown = null; }
@@ -22,6 +32,7 @@
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     const view = document.getElementById('view');
     clear(view); window.scrollTo(0, 0);
+    rememberVisit(name, param);
     const fn = views[name] || views.tonight;
     const r = fn(view, param);
     if (typeof r === 'function') teardown = r;
@@ -83,6 +94,10 @@
       h('div', h('div.kicker', greeting() + ' · ' + dateStr()), h('h1', 'Tonight’s practice'), h('p.muted', `About ${plan.minutes} minutes. Four small things, every evening.`)),
       h('div', { style: { textAlign: 'center', minWidth: '120px' } }, h('div.streak', streak + ' 🔥'), h('div.muted.small', streak === 1 ? 'evening in a row' : 'evenings in a row'), h('div.muted.small', S.eveningsPracticed() + ' evenings total'))
     ));
+    const last = S.load().lastOpen;
+    if (last && Date.now() - last.ts < 14 * 86400000) {
+      view.appendChild(h('div.card', h('div.card-row', h('div', h('div.kicker', 'Pick up where you left off'), h('b', last.title)), h('button.btn.primary', { onClick: () => navigate(last.name, last.param) }, '⏯ Continue'))));
+    }
     plan.items.forEach(it => {
       const done = rec.done.includes(it.id);
       const card = h('div.card.tonight-item' + (done ? '.done' : ''),
@@ -189,7 +204,12 @@
 
     // tab
     const tabWrap = h('div.tab-wrap');
-    view.appendChild(tabLegend());
+    const legendRow = tabLegend();
+    const zoom = h('div.zoom-row', h('span.small.muted', 'Tab size '),
+      h('button.btn.small', { 'aria-label': 'Smaller tab', onClick: () => { set.beatWidth = Math.max(30, (set.beatWidth || 44) - 7); S.save(); build(); } }, 'A−'),
+      h('button.btn.small', { 'aria-label': 'Larger tab', onClick: () => { set.beatWidth = Math.min(86, (set.beatWidth || 44) + 7); S.save(); build(); } }, 'A+'));
+    legendRow.appendChild(zoom);
+    view.appendChild(legendRow);
     view.appendChild(tabWrap);
     const chordBox = h('div');
     view.appendChild(chordBox);
@@ -245,7 +265,17 @@
       tabCtl = HG.Tab.render(arr, tabWrap, { showLyrics: set.showLyrics, showFingers: set.showFingers, showBeats: set.showBeats, beatWidth: set.beatWidth, onMeasureClick });
       if (state.loop) { if (state.loop.end >= arr.measures.length) state.loop = null; tabCtl.setLoop(state.loop && state.loop.start, state.loop && state.loop.end); }
       P.load(arr, { tempo: state.tempo, loop: state.loop });
-      P.onTick = t => { if (t == null) { tabCtl.setCursor(null); status.textContent = ''; return; } if (t < 0) { tabCtl.setCursor(null); status.textContent = 'Count-in…'; } else { status.textContent = ''; tabCtl.setCursor(t); } };
+      status.classList.add('countin-banner');
+      P.onTick = t => {
+        if (t == null) { tabCtl.setCursor(null); status.textContent = ''; return; }
+        const loopStart = (state.loop ? arr.measures[state.loop.start].startTick : 0);
+        if (t < loopStart) {
+          tabCtl.setCursor(null);
+          const rel = ((t - loopStart) % arr.ticksPerMeasure + arr.ticksPerMeasure) % arr.ticksPerMeasure;
+          const beat = Math.floor(rel / arr.meterInfo.mainBeatTicks) + 1;
+          status.textContent = 'Count-in:  ' + Array.from({ length: beat }, (_, i) => i + 1).join('  ');
+        } else { status.textContent = ''; tabCtl.setCursor(t); }
+      };
       P.onEvent = (idx) => { tabCtl.highlightEvent(idx, 'tab-hit'); setTimeout(() => tabCtl.unhighlightEvent(idx, 'tab-hit'), 160); };
       HG.Audio.warm(arr.events.flatMap(e => e.notes.map(n => n.midi)));
       clear(chordBox);
@@ -368,10 +398,28 @@
   /* ------------------------------------------------------------- start */
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); HG.installPrompt = e; if (parseHash().name === 'tonight') route(); });
   window.addEventListener('hashchange', route);
+  function showWelcome() {
+    const d = HG.Store.load();
+    if (d.welcomed) return;
+    const done = () => { d.welcomed = true; HG.Store.save(); overlay.remove(); };
+    const go = (name, param) => { done(); navigate(name, param); };
+    const overlay = h('div.overlay', { onClick: e => { if (e.target === overlay) done(); } },
+      h('div.card',
+        h('h2', '🎸 Welcome to Evening Hymns'),
+        h('p', 'Ten quiet minutes a night. The app shows you where every finger goes, plays each line so you can hear it, and keeps your streak.'),
+        h('p.small.muted', 'Tabs are read left to right: the number is the fret, the row is the string, and the letters underneath (p i m a) tell you which finger plucks.'),
+        h('div.btn-row',
+          h('button.btn.primary', { onClick: () => go('lessons', 'l01') }, '🌱 I’m brand new — start with Lesson 1'),
+          h('button.btn', { onClick: () => go('hymns', 'amazing-grace') }, '🎵 Show me a hymn first'),
+          h('button.btn', { onClick: done }, '👀 Just let me look around'))));
+    document.body.appendChild(overlay);
+  }
+
   function init() {
     HG.Audio.setVolume(HG.Store.settings().volume);
     if (!location.hash) location.hash = '#/tonight';
     route();
+    showWelcome();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

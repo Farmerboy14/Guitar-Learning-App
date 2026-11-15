@@ -30,6 +30,9 @@ function findChromium() {
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.goto(BASE);
   await page.waitForTimeout(400);
+  const welcome = await page.$('.overlay');
+  if (!welcome) errors.push('welcome overlay did not appear on first visit');
+  else { await page.click('text=Just let me look around'); await page.waitForTimeout(200); }
   const go = async (hash, shot, fn) => {
     const before = errors.length;
     await page.evaluate(h => { location.hash = '#/' + h; }, hash);
@@ -102,6 +105,7 @@ function findChromium() {
   const mp = await mob.newPage();
   mp.on('pageerror', e => errors.push('mobile pageerror: ' + e.message));
   await mp.goto(BASE + '#/hymns/amazing-grace'); await mp.waitForTimeout(600);
+  const mWelcome = await mp.$('.overlay'); if (mWelcome) { await mp.click('text=Just let me look around'); await mp.waitForTimeout(300); }
   await mp.screenshot({ path: path.join(SHOTS, '15-mobile-hymn.png'), fullPage: true });
   const bodyWidth = await mp.evaluate(() => document.documentElement.scrollWidth);
   if (bodyWidth > 400) errors.push('mobile page scrolls horizontally: ' + bodyWidth);
